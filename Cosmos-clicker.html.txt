@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>COSMIC CLICKER ◆ A Reset Saga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Major+Mono+Display&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0612;
+    --bg-1:#15092b;
+    --ink:#f5e9c9;
+    --ink-dim:#a08fb8;
+    --gold:#ffcc4a;
+    --gold-deep:#e89c12;
+    --cyan:#5ef0ff;
+    --magenta:#ff4fa3;
+    --violet:#9b6cff;
+    --green:#7eff8c;
+    --red:#ff5b5b;
+    --panel:#1a0d33;
+    --panel-2:#241246;
+    --border:#3a1f6b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'JetBrains Mono', monospace;
+    background:
+      radial-gradient(ellipse at 20% 10%, #2a0f5c 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, #5c0f4d 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, #0f0a25 0%, #050310 100%);
+    color:var(--ink);
+    min-height:100vh;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* starfield */
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .stars span{
+    position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;
+    opacity:.6;animation:tw 3s infinite ease-in-out;
+  }
+  @keyframes tw{0%,100%{opacity:.2;transform:scale(.6)}50%{opacity:1;transform:scale(1.2)}}
+
+.app{
+position:relative;z-index:1;
+display:grid;
+grid-template-columns: 320px 1fr 360px;
+grid-template-rows: auto 1fr;
+grid-template-areas:
+“header header header”
+“left   center  right”;
+gap:14px;
+padding:14px;
+height:100vh;
+}
+@media (max-width: 1100px){
+.app{
+grid-template-columns: 1fr;
+grid-template-rows: auto auto auto auto;
+grid-template-areas:
+“header”
+“center”
+“left”
+“right”;
+height:auto;
+min-height:100vh;
+overflow:auto;
+}
+html,body{overflow:auto}
+}
+
+header{
+grid-area:header;
+display:flex;align-items:center;justify-content:space-between;
+padding:10px 18px;
+background:linear-gradient(90deg, rgba(155,108,255,.15), rgba(255,79,163,.1), rgba(94,240,255,.15));
+border:1px solid var(–border);
+border-radius:14px;
+backdrop-filter: blur(6px);
+}
+.logo{
+font-family:‘Major Mono Display’, monospace;
+font-size:22px;letter-spacing:.15em;
+background:linear-gradient(90deg,var(–cyan),var(–magenta),var(–gold));
+-webkit-background-clip:text;background-clip:text;color:transparent;
+text-shadow:0 0 30px rgba(255,79,163,.3);
+}
+.stats{display:flex;gap:18px;font-family:‘VT323’, monospace;font-size:20px}
+.stat .l{font-size:11px;color:var(–ink-dim);letter-spacing:.2em;text-transform:uppercase;font-family:‘JetBrains Mono’, monospace}
+.stat .v{font-size:22px;color:var(–gold);text-shadow:0 0 12px rgba(255,204,74,.5)}
+.stat.cyan .v{color:var(–cyan);text-shadow:0 0 12px rgba(94,240,255,.6)}
+.stat.magenta .v{color:var(–magenta);text-shadow:0 0 12px rgba(255,79,163,.6)}
+
+.panel{
+background:linear-gradient(180deg, rgba(36,18,70,.85), rgba(26,13,51,.9));
+border:1px solid var(–border);
+border-radius:14px;
+padding:14px;
+overflow-y:auto;
+box-shadow: inset 0 0 0 1px rgba(155,108,255,.08);
+}
+.panel::-webkit-scrollbar{width:8px}
+.panel::-webkit-scrollbar-thumb{background:#3a1f6b;border-radius:4px}
+.panel::-webkit-scrollbar-track{background:transparent}
+
+.panel h2{
+font-family:‘Major Mono Display’, monospace;
+font-size:13px;letter-spacing:.2em;
+color:var(–ink-dim);
+margin-bottom:12px;
+padding-bottom:8px;
+border-bottom:1px dashed var(–border);
+}
+
+/* LEFT - Upgrades */
+.upgrade{
+background:rgba(10,6,18,.6);
+border:1px solid var(–border);
+border-radius:10px;
+padding:10px 12px;
+margin-bottom:8px;
+cursor:pointer;
+transition:all .15s ease;
+position:relative;
+overflow:hidden;
+}
+.upgrade::before{
+content:’’;position:absolute;left:0;top:0;bottom:0;width:3px;
+background:var(–violet);opacity:.6;
+}
+.upgrade:hover:not(.locked):not(.maxed){
+transform:translateX(2px);
+border-color:var(–violet);
+box-shadow:0 0 20px rgba(155,108,255,.25);
+}
+.upgrade.affordable{border-color:var(–gold)}
+.upgrade.affordable::before{background:var(–gold);opacity:1;box-shadow:0 0 8px var(–gold)}
+.upgrade.locked{opacity:.35;cursor:not-allowed;filter:grayscale(.6)}
+.upgrade.maxed{opacity:.6;cursor:default}
+.upgrade.maxed::before{background:var(–green)}
+.up-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.up-name{font-weight:700;font-size:13px;color:var(–ink)}
+.up-lvl{font-family:‘VT323’,monospace;font-size:18px;color:var(–cyan)}
+.up-desc{font-size:10.5px;color:var(–ink-dim);margin-top:3px;line-height:1.4}
+.up-cost{font-family:‘VT323’,monospace;font-size:16px;color:var(–gold);margin-top:4px}
+.up-cost.cant{color:var(–red)}
+.up-icon{display:inline-block;margin-right:6px;font-family:‘Major Mono Display’,monospace}
+
+/* CENTER - Click area */
+.center{
+grid-area:center;
+display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+padding:14px;
+background:radial-gradient(ellipse at center, rgba(155,108,255,.08), transparent 70%);
+border:1px solid var(–border);
+border-radius:14px;
+position:relative;
+overflow:hidden;
+min-height:500px;
+}
+.layer-banner{
+font-family:‘Major Mono Display’,monospace;
+font-size:12px;letter-spacing:.3em;color:var(–ink-dim);
+text-align:center;padding-top:6px;
+}
+.layer-banner b{color:var(–gold)}
+
+.clickwrap{
+flex:1;display:flex;align-items:center;justify-content:center;width:100%;
+position:relative;
+}
+.clicker{
+width:240px;height:240px;border-radius:50%;
+background:
+radial-gradient(circle at 30% 30%, #ffe89a, #ffcc4a 35%, #e89c12 60%, #7a4f08 100%);
+border:none;cursor:pointer;
+box-shadow:
+0 0 60px rgba(255,204,74,.45),
+inset -10px -20px 40px rgba(0,0,0,.4),
+inset 10px 10px 30px rgba(255,255,255,.3);
+position:relative;
+transition:transform .08s ease;
+font-family:‘Major Mono Display’,monospace;
+font-size:18px;letter-spacing:.2em;color:#3a1f00;
+text-shadow:0 1px 0 rgba(255,255,255,.3);
+}
+.clicker.cosmic{
+background:radial-gradient(circle at 30% 30%, #ffd4ff, #ff4fa3 35%, #9b6cff 60%, #2a0a4a 100%);
+box-shadow:
+0 0 80px rgba(255,79,163,.6),
+inset -10px -20px 40px rgba(0,0,0,.4),
+inset 10px 10px 30px rgba(255,255,255,.3);
+color:#fff;
+}
+.clicker.void{
+background:radial-gradient(circle at 30% 30%, #5ef0ff, #00b8cc 35%, #003a4a 60%, #000 100%);
+box-shadow:
+0 0 100px rgba(94,240,255,.7),
+inset -10px -20px 40px rgba(0,0,0,.6),
+inset 10px 10px 30px rgba(255,255,255,.2);
+color:#fff;
+}
+.clicker:active{transform:scale(.94)}
+.clicker::after{
+content:’’;position:absolute;inset:-10px;border-radius:50%;
+border:2px dashed currentColor;opacity:.3;
+animation:spin 18s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.float{
+position:absolute;pointer-events:none;
+font-family:‘VT323’,monospace;font-size:24px;font-weight:700;
+color:var(–gold);text-shadow:0 0 10px rgba(255,204,74,.7);
+animation:floatUp 1s ease-out forwards;
+z-index:10;
+}
+@keyframes floatUp{
+0%{opacity:0;transform:translateY(0) scale(.8)}
+20%{opacity:1;transform:translateY(-15px) scale(1.1)}
+100%{opacity:0;transform:translateY(-80px) scale(1)}
+}
+
+.meters{
+width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;
+}
+.meter{
+background:rgba(10,6,18,.6);border:1px solid var(–border);border-radius:10px;
+padding:8px 12px;
+}
+.meter .l{font-size:10px;color:var(–ink-dim);letter-spacing:.15em;text-transform:uppercase}
+.meter .v{font-family:‘VT323’,monospace;font-size:22px;color:var(–gold)}
+.meter .v.cyan{color:var(–cyan)}
+.meter .v.magenta{color:var(–magenta)}
+.meter .v.green{color:var(–green)}
+
+/* RIGHT - Prestige + log */
+.prestige{
+background:linear-gradient(135deg, rgba(255,79,163,.12), rgba(155,108,255,.12));
+border:1px solid var(–magenta);border-radius:12px;
+padding:12px;margin-bottom:10px;
+}
+.prestige h3{font-family:‘Major Mono Display’,monospace;font-size:13px;letter-spacing:.2em;color:var(–magenta);margin-bottom:6px}
+.prestige .desc{font-size:11px;color:var(–ink-dim);margin-bottom:8px;line-height:1.45}
+.prestige .gain{font-family:‘VT323’,monospace;font-size:20px;color:var(–gold);margin-bottom:8px}
+.btn{
+width:100%;padding:10px;border:none;border-radius:8px;cursor:pointer;
+font-family:‘JetBrains Mono’,monospace;font-weight:700;font-size:12px;letter-spacing:.15em;
+text-transform:uppercase;transition:all .15s ease;
+}
+.btn-prestige{background:linear-gradient(90deg,var(–magenta),var(–violet));color:#fff;box-shadow:0 0 20px rgba(255,79,163,.4)}
+.btn-prestige:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 0 30px rgba(255,79,163,.6)}
+.btn-ascend{background:linear-gradient(90deg,var(–cyan),#3a8cff);color:#000;box-shadow:0 0 20px rgba(94,240,255,.4)}
+.btn-ascend:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 0 30px rgba(94,240,255,.6)}
+.btn-void{background:linear-gradient(90deg,#fff,#888);color:#000;box-shadow:0 0 20px rgba(255,255,255,.3)}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5)}
+
+.log{
+flex:1;background:rgba(10,6,18,.6);border:1px solid var(–border);border-radius:10px;
+padding:10px;font-size:11px;color:var(–ink-dim);
+max-height:240px;overflow-y:auto;line-height:1.6;
+}
+.log .e{padding:2px 0;border-bottom:1px dashed rgba(58,31,107,.3)}
+.log .e:last-child{border-bottom:none}
+.log .e .t{color:var(–cyan);margin-right:6px}
+.log .e.gold{color:var(–gold)}
+.log .e.magenta{color:var(–magenta)}
+.log .e.cyan{color:var(–cyan)}
+
+.controls{display:flex;gap:6px;margin-top:8px}
+.controls .btn{font-size:10px;padding:6px;letter-spacing:.1em}
+.btn-mute{background:rgba(58,31,107,.6);color:var(–ink)}
+.btn-reset{background:rgba(255,91,91,.2);color:var(–red);border:1px solid var(–red)}
+
+.tab-row{display:flex;gap:4px;margin-bottom:10px}
+.tab{
+flex:1;padding:6px;background:rgba(10,6,18,.6);border:1px solid var(–border);
+border-radius:6px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+cursor:pointer;color:var(–ink-dim);text-align:center;font-weight:700;
+}
+.tab.active{background:var(–violet);color:#fff;border-color:var(–violet)}
+.tab.locked{opacity:.3;cursor:not-allowed}
+
+/* Achievement toast */
+.toast{
+position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);
+background:linear-gradient(90deg,var(–gold),var(–gold-deep));
+color:#1a0d33;padding:12px 20px;border-radius:10px;
+font-weight:700;font-size:13px;letter-spacing:.1em;
+box-shadow:0 10px 40px rgba(255,204,74,.5);
+z-index:1000;opacity:0;transition:all .4s cubic-bezier(.2,1,.4,1);
+pointer-events:none;
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast .a-name{font-family:‘Major Mono Display’,monospace;letter-spacing:.2em;font-size:11px;color:#3a1f00;display:block;margin-bottom:2px}
+
+/* Particle on click */
+.particle{
+position:absolute;width:6px;height:6px;background:var(–gold);
+border-radius:50%;pointer-events:none;
+animation:burst .6s ease-out forwards;
+}
+@keyframes burst{
+to{opacity:0;transform:translate(var(–dx),var(–dy)) scale(0)}
+}
+</style>
+
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="app">
+  <header>
+    <div class="logo">◆ COSMIC CLICKER ◆</div>
+    <div class="stats">
+      <div class="stat"><div class="l">Coins</div><div class="v" id="hCoins">0</div></div>
+      <div class="stat magenta"><div class="l">★ Stars</div><div class="v" id="hStars">0</div></div>
+      <div class="stat cyan"><div class="l">◇ Cosmic</div><div class="v" id="hCosmic">0</div></div>
+    </div>
+  </header>
+
+  <aside class="panel" style="grid-area:left">
+    <div class="tab-row">
+      <div class="tab active" data-tab="basic">Basic</div>
+      <div class="tab" data-tab="star" id="tabStar">Star</div>
+      <div class="tab" data-tab="cosmic" id="tabCosmic">Cosmic</div>
+    </div>
+    <div id="upgradeList"></div>
+  </aside>
+
+  <main class="center">
+    <div class="layer-banner">// CURRENT REALM: <b id="realm">MORTAL</b></div>
+    <div class="clickwrap">
+      <button class="clicker" id="clicker">CLICK<br>ME</button>
+    </div>
+    <div class="meters">
+      <div class="meter"><div class="l">Per Click</div><div class="v" id="mClick">1</div></div>
+      <div class="meter"><div class="l">Per Second</div><div class="v cyan" id="mCps">0</div></div>
+      <div class="meter"><div class="l">Total Clicks</div><div class="v magenta" id="mTotal">0</div></div>
+      <div class="meter"><div class="l">Multiplier</div><div class="v green" id="mMult">×1.00</div></div>
+    </div>
+  </main>
+
+  <aside class="panel" style="grid-area:right;display:flex;flex-direction:column">
+    <h2>◆ RESET LAYERS</h2>
+
+```
+<div class="prestige">
+  <h3>★ PRESTIGE</h3>
+  <div class="desc">Burn coins for Stars. Each Star gives +5% to all production. Resets coins & basic upgrades.</div>
+  <div class="gain">Gain: <span id="starGain">0</span> ★</div>
+  <button class="btn btn-prestige" id="btnPrestige" disabled>Prestige</button>
+</div>
+
+<div class="prestige" style="border-color:var(--cyan);background:linear-gradient(135deg, rgba(94,240,255,.12), rgba(155,108,255,.12))">
+  <h3 style="color:var(--cyan)">◇ ASCEND</h3>
+  <div class="desc">Sacrifice Stars for Cosmic Energy. Unlocks Cosmic upgrades. Resets Stars & coins.</div>
+  <div class="gain">Gain: <span id="cosmicGain">0</span> ◇</div>
+  <button class="btn btn-ascend" id="btnAscend" disabled>Ascend</button>
+</div>
+
+<div class="prestige" style="border-color:#fff;background:linear-gradient(135deg, rgba(255,255,255,.1), rgba(155,108,255,.05))">
+  <h3 style="color:#fff">∞ TRANSCEND</h3>
+  <div class="desc">Become one with the Void. Permanent +1 click multiplier per Transcend. Resets EVERYTHING.</div>
+  <div class="gain">Gain: <span id="voidGain">0</span> ∞</div>
+  <button class="btn btn-void" id="btnVoid" disabled>Transcend</button>
+</div>
+
+<h2 style="margin-top:6px">◆ LOG</h2>
+<div class="log" id="log"></div>
+
+<div class="controls">
+  <button class="btn btn-mute" id="btnSave">Save</button>
+  <button class="btn btn-reset" id="btnHardReset">Hard Reset</button>
+</div>
+```
+
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ======= STARFIELD =======
+(function(){
+  const s=document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const e=document.createElement('span');
+    e.style.left=Math.random()*100+'%';
+    e.style.top=Math.random()*100+'%';
+    e.style.animationDelay=(Math.random()*3)+'s';
+    e.style.opacity=.3+Math.random()*.5;
+    s.appendChild(e);
+  }
+})();
+
+// ======= GAME STATE =======
+const STATE = {
+  coins: 0,
+  totalCoinsEarned: 0,
+  totalClicks: 0,
+  stars: 0,
+  totalStars: 0,
+  cosmic: 0,
+  totalCosmic: 0,
+  voidEssence: 0,
+  prestiges: 0,
+  ascensions: 0,
+  transcends: 0,
+  upgrades: {}, // {id: level}
+  achievements: {},
+  currentTab: 'basic',
+  lastTick: Date.now(),
+};
+
+// ======= UPGRADES =======
+// Cost formula: baseCost * costMul^level
+// Effects scale with level
+const UPGRADES = [
+  // BASIC TIER (reset on prestige)
+  {id:'click1', tier:'basic', name:'Reinforced Finger', icon:'◆',
+    desc:'+1 to click power', baseCost:10, costMul:1.15, max:200,
+    effect:lvl=>({type:'clickAdd', val:lvl})},
+  {id:'click2', tier:'basic', name:'Golden Gloves', icon:'◇',
+    desc:'+5 click power per level', baseCost:250, costMul:1.18, max:100,
+    effect:lvl=>({type:'clickAdd', val:lvl*5})},
+  {id:'auto1', tier:'basic', name:'Lazy Cursor', icon:'◉',
+    desc:'+0.5 coins/sec per level', baseCost:50, costMul:1.2, max:100,
+    effect:lvl=>({type:'cpsAdd', val:lvl*0.5})},
+  {id:'auto2', tier:'basic', name:'Tiny Robot', icon:'▣',
+    desc:'+5 coins/sec per level', baseCost:1000, costMul:1.22, max:100,
+    effect:lvl=>({type:'cpsAdd', val:lvl*5})},
+  {id:'auto3', tier:'basic', name:'Coin Factory', icon:'▦',
+    desc:'+50 coins/sec per level', baseCost:25000, costMul:1.25, max:100,
+    effect:lvl=>({type:'cpsAdd', val:lvl*50})},
+  {id:'auto4', tier:'basic', name:'Galactic Mint', icon:'◈',
+    desc:'+500 coins/sec per level', baseCost:500000, costMul:1.28, max:100,
+    effect:lvl=>({type:'cpsAdd', val:lvl*500})},
+  {id:'mult1', tier:'basic', name:'Lucky Charm', icon:'✦',
+    desc:'×1.05 to all production per level', baseCost:500, costMul:1.5, max:50,
+    effect:lvl=>({type:'mult', val:Math.pow(1.05, lvl)})},
+  {id:'mult2', tier:'basic', name:'Cosmic Resonance', icon:'❋',
+    desc:'×1.1 to all production per level', baseCost:100000, costMul:1.7, max:25,
+    effect:lvl=>({type:'mult', val:Math.pow(1.1, lvl)})},
+
+  // STAR TIER (unlocked after first prestige, reset on ascend)
+  {id:'star1', tier:'star', name:'Stellar Touch', icon:'★',
+    desc:'+10% click power per level', baseCost:1, costMul:1.6, max:50, currency:'stars',
+    effect:lvl=>({type:'clickMult', val:1+0.1*lvl})},
+  {id:'star2', tier:'star', name:'Star Forge', icon:'☆',
+    desc:'+25% coins/sec per level', baseCost:2, costMul:1.7, max:50, currency:'stars',
+    effect:lvl=>({type:'cpsMult', val:1+0.25*lvl})},
+  {id:'star3', tier:'star', name:'Constellation', icon:'✧',
+    desc:'×1.15 to ALL production per level', baseCost:5, costMul:2, max:25, currency:'stars',
+    effect:lvl=>({type:'mult', val:Math.pow(1.15, lvl)})},
+  {id:'star4', tier:'star', name:'Supernova', icon:'✸',
+    desc:'+1 Star gain on prestige per level', baseCost:25, costMul:2.5, max:20, currency:'stars',
+    effect:lvl=>({type:'starBonus', val:lvl})},
+  {id:'star5', tier:'star', name:'Auto-Click', icon:'◐',
+    desc:'Auto-clicks 1× per second per level', baseCost:50, costMul:3, max:10, currency:'stars',
+    effect:lvl=>({type:'autoClick', val:lvl})},
+
+  // COSMIC TIER (unlocked after first ascend, reset on transcend)
+  {id:'cosmic1', tier:'cosmic', name:'Void Pulse', icon:'◇',
+    desc:'×2 to all production per level', baseCost:1, costMul:2, max:25, currency:'cosmic',
+    effect:lvl=>({type:'mult', val:Math.pow(2, lvl)})},
+  {id:'cosmic2', tier:'cosmic', name:'Time Dilation', icon:'⧗',
+    desc:'+50% offline production per level (max 200%)', baseCost:3, costMul:2.5, max:4, currency:'cosmic',
+    effect:lvl=>({type:'offlineBoost', val:0.5+0.5*lvl})},
+  {id:'cosmic3', tier:'cosmic', name:'Quantum Fingers', icon:'⟁',
+    desc:'+5 Auto-clicks per sec per level', baseCost:5, costMul:3, max:10, currency:'cosmic',
+    effect:lvl=>({type:'autoClick', val:lvl*5})},
+  {id:'cosmic4', tier:'cosmic', name:'Reality Anchor', icon:'⬢',
+    desc:'+50% Cosmic gain on ascend per level', baseCost:10, costMul:4, max:10, currency:'cosmic',
+    effect:lvl=>({type:'cosmicBonus', val:1+0.5*lvl})},
+];
+
+// ======= ACHIEVEMENTS =======
+const ACHIEVEMENTS = [
+  {id:'click10', name:'Just Getting Started', cond:s=>s.totalClicks>=10},
+  {id:'click1k', name:'Clicking Frenzy', cond:s=>s.totalClicks>=1000},
+  {id:'click10k', name:'Carpal Tunnel', cond:s=>s.totalClicks>=10000},
+  {id:'coins1k', name:'Pocket Change', cond:s=>s.totalCoinsEarned>=1000},
+  {id:'coins1m', name:'Millionaire', cond:s=>s.totalCoinsEarned>=1e6},
+  {id:'coins1b', name:'Billionaire', cond:s=>s.totalCoinsEarned>=1e9},
+  {id:'prestige1', name:'First Reset', cond:s=>s.prestiges>=1},
+  {id:'prestige10', name:'Reset Addict', cond:s=>s.prestiges>=10},
+  {id:'ascend1', name:'Touched the Stars', cond:s=>s.ascensions>=1},
+  {id:'transcend1', name:'Beyond Reality', cond:s=>s.transcends>=1},
+];
+
+// ======= HELPERS =======
+function fmt(n){
+  if(n<1000) return n<10?n.toFixed(2).replace(/\.?0+$/,''):Math.floor(n).toString();
+  const units=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
+  let i=0;
+  while(n>=1000 && i<units.length-1){n/=1000;i++}
+  return n.toFixed(2).replace(/\.?0+$/,'')+units[i];
+}
+function upgradeCost(u, lvl){
+  return Math.floor(u.baseCost * Math.pow(u.costMul, lvl));
+}
+function getLvl(id){return STATE.upgrades[id]||0}
+
+function calcStats(){
+  let clickAdd = 1; // base click
+  let cpsAdd = 0;
+  let clickMult = 1;
+  let cpsMult = 1;
+  let mult = 1;
+  let starBonusAdd = 0;
+  let cosmicBonusMul = 1;
+  let autoClick = 0;
+  let offlineBoost = 0.1; // base 10% offline
+
+  for(const u of UPGRADES){
+    const lvl = getLvl(u.id);
+    if(lvl<=0) continue;
+    const e = u.effect(lvl);
+    if(e.type==='clickAdd') clickAdd += e.val;
+    else if(e.type==='cpsAdd') cpsAdd += e.val;
+    else if(e.type==='clickMult') clickMult *= e.val;
+    else if(e.type==='cpsMult') cpsMult *= e.val;
+    else if(e.type==='mult') mult *= e.val;
+    else if(e.type==='starBonus') starBonusAdd += e.val;
+    else if(e.type==='cosmicBonus') cosmicBonusMul *= e.val;
+    else if(e.type==='autoClick') autoClick += e.val;
+    else if(e.type==='offlineBoost') offlineBoost = Math.max(offlineBoost, e.val);
+  }
+  // Currency multipliers
+  const starMul = 1 + STATE.stars * 0.05;
+  const cosmicMul = 1 + STATE.cosmic * 0.5;
+  const voidMul = 1 + STATE.voidEssence * 1.0;
+
+  const finalMult = mult * starMul * cosmicMul * voidMul;
+  const perClick = (clickAdd * clickMult) * finalMult;
+  const perSec = cpsAdd * cpsMult * finalMult;
+
+  return {perClick, perSec, mult: finalMult, autoClick, starBonusAdd, cosmicBonusMul, offlineBoost};
+}
+
+// Star gain formula based on total coins earned this prestige run
+function calcStarGain(){
+  const stats = calcStats();
+  if(STATE.totalCoinsEarned < 1e4) return 0;
+  // Cube root scaling
+  const base = Math.floor(Math.pow(STATE.totalCoinsEarned/1e4, 0.5));
+  return base + stats.starBonusAdd * (base>0?1:0);
+}
+function calcCosmicGain(){
+  const stats = calcStats();
+  if(STATE.totalStars < 50) return 0;
+  const base = Math.floor(Math.pow(STATE.totalStars/50, 0.6));
+  return Math.floor(base * stats.cosmicBonusMul);
+}
+function calcVoidGain(){
+  if(STATE.totalCosmic < 25) return 0;
+  return Math.floor(Math.pow(STATE.totalCosmic/25, 0.5));
+}
+
+// ======= CLICK =======
+function doClick(x, y){
+  const stats = calcStats();
+  const gain = stats.perClick;
+  STATE.coins += gain;
+  STATE.totalCoinsEarned += gain;
+  STATE.totalClicks++;
+  spawnFloat(x, y, '+'+fmt(gain));
+  spawnParticles(x, y);
+  checkAchievements();
+}
+
+function spawnFloat(x, y, txt){
+  const el = document.createElement('div');
+  el.className = 'float';
+  el.textContent = txt;
+  el.style.left = (x-20) + 'px';
+  el.style.top = (y-20) + 'px';
+  document.querySelector('.center').appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+function spawnParticles(x, y){
+  const c = document.querySelector('.center');
+  for(let i=0;i<6;i++){
+    const p = document.createElement('div');
+    p.className='particle';
+    const a = (Math.PI*2*i)/6 + Math.random()*.5;
+    const d = 40 + Math.random()*30;
+    p.style.setProperty('--dx', Math.cos(a)*d+'px');
+    p.style.setProperty('--dy', Math.sin(a)*d+'px');
+    p.style.left = x+'px';
+    p.style.top = y+'px';
+    if(STATE.transcends>0) p.style.background = 'var(--cyan)';
+    else if(STATE.ascensions>0) p.style.background = 'var(--magenta)';
+    c.appendChild(p);
+    setTimeout(()=>p.remove(), 600);
+  }
+}
+
+document.getElementById('clicker').addEventListener('click', e=>{
+  const center = document.querySelector('.center').getBoundingClientRect();
+  const x = e.clientX - center.left;
+  const y = e.clientY - center.top;
+  doClick(x, y);
+});
+
+// ======= UPGRADE BUYING =======
+function buyUpgrade(id){
+  const u = UPGRADES.find(x=>x.id===id);
+  if(!u) return;
+  const lvl = getLvl(id);
+  if(lvl >= u.max) return;
+  const cost = upgradeCost(u, lvl);
+  const cur = u.currency || 'coins';
+  if(STATE[cur] < cost) return;
+  STATE[cur] -= cost;
+  STATE.upgrades[id] = lvl + 1;
+  log(`Bought ${u.name} Lv ${lvl+1}`, cur==='coins'?'':cur==='stars'?'magenta':'cyan');
+  renderUpgrades();
+}
+
+// ======= PRESTIGE / ASCEND / TRANSCEND =======
+function doPrestige(){
+  const gain = calcStarGain();
+  if(gain<=0) return;
+  STATE.stars += gain;
+  STATE.totalStars += gain;
+  STATE.prestiges++;
+  // reset coins and basic upgrades
+  STATE.coins = 0;
+  STATE.totalCoinsEarned = 0;
+  for(const u of UPGRADES){
+    if(u.tier === 'basic') delete STATE.upgrades[u.id];
+  }
+  log(`★ PRESTIGED for ${gain} Stars`, 'magenta');
+  showToast('PRESTIGE', `Gained ${gain} ★`);
+  STATE.currentTab = 'star';
+  renderAll();
+  checkAchievements();
+}
+function doAscend(){
+  const gain = calcCosmicGain();
+  if(gain<=0) return;
+  STATE.cosmic += gain;
+  STATE.totalCosmic += gain;
+  STATE.ascensions++;
+  STATE.coins = 0;
+  STATE.totalCoinsEarned = 0;
+  STATE.stars = 0;
+  STATE.totalStars = 0;
+  for(const u of UPGRADES){
+    if(u.tier === 'basic' || u.tier === 'star') delete STATE.upgrades[u.id];
+  }
+  log(`◇ ASCENDED for ${gain} Cosmic Energy`, 'cyan');
+  showToast('ASCEND', `Gained ${gain} ◇`);
+  STATE.currentTab = 'cosmic';
+  renderAll();
+  checkAchievements();
+}
+function doTranscend(){
+  const gain = calcVoidGain();
+  if(gain<=0) return;
+  STATE.voidEssence += gain;
+  STATE.transcends++;
+  // Reset everything except void essence and transcends
+  STATE.coins = 0;
+  STATE.totalCoinsEarned = 0;
+  STATE.stars = 0;
+  STATE.totalStars = 0;
+  STATE.cosmic = 0;
+  STATE.totalCosmic = 0;
+  STATE.upgrades = {};
+  STATE.totalClicks = 0;
+  log(`∞ TRANSCENDED for ${gain} Void Essence`, 'cyan');
+  showToast('TRANSCEND', `Gained ${gain} ∞ — Reality reshaped`);
+  STATE.currentTab = 'basic';
+  renderAll();
+  checkAchievements();
+}
+
+document.getElementById('btnPrestige').onclick = doPrestige;
+document.getElementById('btnAscend').onclick = doAscend;
+document.getElementById('btnVoid').onclick = doTranscend;
+
+// ======= ACHIEVEMENTS =======
+function checkAchievements(){
+  for(const a of ACHIEVEMENTS){
+    if(STATE.achievements[a.id]) continue;
+    if(a.cond(STATE)){
+      STATE.achievements[a.id] = true;
+      showToast('ACHIEVEMENT', a.name);
+      log(`◆ Achievement: ${a.name}`, 'gold');
+    }
+  }
+}
+
+// ======= LOG =======
+const logEl = document.getElementById('log');
+function log(msg, cls=''){
+  const e = document.createElement('div');
+  e.className = 'e ' + cls;
+  const t = new Date();
+  const ts = String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+  e.innerHTML = `<span class="t">${ts}</span>${msg}`;
+  logEl.insertBefore(e, logEl.firstChild);
+  while(logEl.children.length > 40) logEl.lastChild.remove();
+}
+
+// ======= TOAST =======
+const toast = document.getElementById('toast');
+let toastTimer = null;
+function showToast(name, msg){
+  toast.innerHTML = `<span class="a-name">${name}</span>${msg}`;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.remove('show'), 2800);
+}
+
+// ======= RENDER =======
+function renderUpgrades(){
+  const list = document.getElementById('upgradeList');
+  list.innerHTML = '';
+  const tier = STATE.currentTab;
+  const filtered = UPGRADES.filter(u=>u.tier===tier);
+  for(const u of filtered){
+    const lvl = getLvl(u.id);
+    const cost = upgradeCost(u, lvl);
+    const cur = u.currency || 'coins';
+    const have = STATE[cur];
+    const can = have >= cost && lvl < u.max;
+    const maxed = lvl >= u.max;
+
+    const div = document.createElement('div');
+    div.className = 'upgrade ' + (maxed?'maxed':can?'affordable':'');
+    div.innerHTML = `
+      <div class="up-row">
+        <div class="up-name"><span class="up-icon">${u.icon}</span>${u.name}</div>
+        <div class="up-lvl">Lv ${lvl}${u.max?'/'+u.max:''}</div>
+      </div>
+      <div class="up-desc">${u.desc}</div>
+      <div class="up-cost ${can?'':'cant'}">${maxed?'✓ MAXED':`${fmt(cost)} ${cur==='coins'?'coins':cur==='stars'?'★':'◇'}`}</div>
+    `;
+    if(!maxed) div.onclick = ()=>{ buyUpgrade(u.id); renderHeader(); };
+    list.appendChild(div);
+  }
+}
+
+function renderHeader(){
+  document.getElementById('hCoins').textContent = fmt(STATE.coins);
+  document.getElementById('hStars').textContent = fmt(STATE.stars);
+  document.getElementById('hCosmic').textContent = fmt(STATE.cosmic) + (STATE.voidEssence>0?' / '+fmt(STATE.voidEssence)+'∞':'');
+
+  const stats = calcStats();
+  document.getElementById('mClick').textContent = fmt(stats.perClick);
+  document.getElementById('mCps').textContent = fmt(stats.perSec) + '/s';
+  document.getElementById('mTotal').textContent = fmt(STATE.totalClicks);
+  document.getElementById('mMult').textContent = '×' + stats.mult.toFixed(2);
+
+  // Realm name
+  let realm = 'MORTAL';
+  if(STATE.transcends>0) realm = `VOID-WALKER [${STATE.transcends}]`;
+  else if(STATE.ascensions>0) realm = `COSMIC [${STATE.ascensions}]`;
+  else if(STATE.prestiges>0) realm = `STAR-TOUCHED [${STATE.prestiges}]`;
+  document.getElementById('realm').textContent = realm;
+
+  // Clicker color
+  const clk = document.getElementById('clicker');
+  clk.classList.toggle('cosmic', STATE.ascensions>0 && STATE.transcends===0);
+  clk.classList.toggle('void', STATE.transcends>0);
+
+  // Prestige buttons
+  const sg = calcStarGain();
+  const cg = calcCosmicGain();
+  const vg = calcVoidGain();
+  document.getElementById('starGain').textContent = sg;
+  document.getElementById('cosmicGain').textContent = cg;
+  document.getElementById('voidGain').textContent = vg;
+  document.getElementById('btnPrestige').disabled = sg<=0;
+  document.getElementById('btnAscend').disabled = cg<=0 || STATE.prestiges===0;
+  document.getElementById('btnVoid').disabled = vg<=0 || STATE.ascensions===0;
+
+  // Tab locks
+  document.getElementById('tabStar').classList.toggle('locked', STATE.prestiges===0 && STATE.totalStars===0 && STATE.ascensions===0 && STATE.transcends===0);
+  document.getElementById('tabCosmic').classList.toggle('locked', STATE.ascensions===0 && STATE.totalCosmic===0 && STATE.transcends===0);
+}
+
+function renderTabs(){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab===STATE.currentTab);
+  });
+}
+
+function renderAll(){
+  renderHeader();
+  renderUpgrades();
+  renderTabs();
+}
+
+// Tab clicks
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick = ()=>{
+    if(t.classList.contains('locked')) return;
+    STATE.currentTab = t.dataset.tab;
+    renderAll();
+  };
+});
+
+// ======= GAME LOOP =======
+let autoClickAccum = 0;
+function tick(){
+  const now = Date.now();
+  const dt = (now - STATE.lastTick) / 1000;
+  STATE.lastTick = now;
+
+  const stats = calcStats();
+  const earned = stats.perSec * dt;
+  STATE.coins += earned;
+  STATE.totalCoinsEarned += earned;
+
+  // Auto-click
+  if(stats.autoClick > 0){
+    autoClickAccum += stats.autoClick * dt;
+    while(autoClickAccum >= 1){
+      STATE.coins += stats.perClick;
+      STATE.totalCoinsEarned += stats.perClick;
+      STATE.totalClicks++;
+      autoClickAccum -= 1;
+    }
+  }
+
+  renderHeader();
+  checkAchievements();
+}
+setInterval(tick, 100);
+
+// ======= SAVE / LOAD =======
+const SAVE_KEY = 'cosmic-clicker-save';
+function save(){
+  try{
+    // We use in-memory + sessionStorage stand-in via window since localStorage may be restricted
+    window.__save = JSON.stringify({...STATE, lastTick: Date.now()});
+    showToast('SAVE', 'Game saved to session');
+    log('◆ Game saved', 'gold');
+  }catch(e){console.error(e)}
+}
+function load(){
+  try{
+    if(window.__save){
+      const data = JSON.parse(window.__save);
+      Object.assign(STATE, data);
+      // Offline gain
+      const offline = (Date.now() - STATE.lastTick)/1000;
+      if(offline > 5){
+        const stats = calcStats();
+        const earned = stats.perSec * offline * stats.offlineBoost;
+        STATE.coins += earned;
+        STATE.totalCoinsEarned += earned;
+        if(earned>0) showToast('OFFLINE', `+${fmt(earned)} coins (${Math.floor(offline)}s away)`);
+      }
+      STATE.lastTick = Date.now();
+    }
+  }catch(e){console.error(e)}
+}
+document.getElementById('btnSave').onclick = save;
+document.getElementById('btnHardReset').onclick = ()=>{
+  if(!confirm('Wipe ALL progress including transcends? This cannot be undone.')) return;
+  for(const k in STATE) delete STATE[k];
+  Object.assign(STATE, {
+    coins:0,totalCoinsEarned:0,totalClicks:0,
+    stars:0,totalStars:0,cosmic:0,totalCosmic:0,voidEssence:0,
+    prestiges:0,ascensions:0,transcends:0,
+    upgrades:{},achievements:{},currentTab:'basic',lastTick:Date.now()
+  });
+  window.__save = null;
+  log('☠ HARD RESET — universe rebooted', 'magenta');
+  renderAll();
+};
+
+// Auto-save every 15s
+setInterval(()=>{ window.__save = JSON.stringify({...STATE, lastTick: Date.now()}); }, 15000);
+
+// ======= INIT =======
+load();
+renderAll();
+log('◆ Welcome to COSMIC CLICKER. Click the orb to begin.', 'gold');
+
+// Keyboard
+document.addEventListener('keydown', e=>{
+  if(e.code==='Space'){
+    e.preventDefault();
+    const r = document.getElementById('clicker').getBoundingClientRect();
+    const c = document.querySelector('.center').getBoundingClientRect();
+    doClick(r.left - c.left + r.width/2, r.top - c.top + r.height/2);
+  }
+});
+</script>
+
+</body>
+</html>
